@@ -1,5 +1,4 @@
-// dummy-examples.js
-// 4 simple JavaScript dummy examples
+
 
 // Example 1: Basic function
 function greet(name) {
@@ -30,3 +29,4 @@ function checkAge(age) {
 }
 console.log("Age check (16):", checkAge(16));
 console.log("Age check (21):", checkAge(21));
+
