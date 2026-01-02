@@ -1,0 +1,345 @@
+
+openapi: 3.0.3
+info:
+  title: Employee Service API
+  version: 1.0.0
+  description: |
+    REST API for managing employees. Supports CRUD operations and common query parameters
+    for pagination, sorting, and filtering.
+servers:
+  - url: https://api.example.com
+    description: Production server
+  - url: https://sandbox.api.example.com
+    description: Sandbox server
+
+paths:
+  /employees:
+    get:
+      summary: List employees
+      description: Retrieve a paginated list of employees.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-based).
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+          description: Number of items per page.
+        - in: query
+          name: sort
+          schema:
+            type: string
+            example: "lastName:asc"
+          description: Sort expression (e.g., `lastName:asc`, `hireDate:desc`).
+        - in: query
+          name: filter
+          schema:
+            type: string
+            example: "department=='Engineering' && location=='Bangalore'"
+          description: RSQL-style filter expression.
+      responses:
+        '200':
+          description: A paged list of employees.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: integer
+                  pageSize:
+                    type: integer
+                  totalItems:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Employee'
+    post:
+      summary: Create employee
+      description: Create a new employee.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreate'
+      responses:
+        '201':
+          description: Employee created.
+          headers:
+            Location:
+              description: URL of the created resource.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          description: Invalid input.
+
+  /employees/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Unique employee identifier.
+    get:
+      summary: Get employee by ID
+      responses:
+        '200':
+          description: Employee details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Employee not found.
+    put:
+      summary: Replace employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeUpdate'
+      responses:
+        '200':
+          description: Employee updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Employee not found.
+    patch:
+      summary: Update employee (partial)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeePatch'
+      responses:
+        '200':
+          description: Employee updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Employee not found.
+    delete:
+      summary: Delete employee
+      responses:
+        '204':
+          description: Employee deleted.
+        '404':
+          description: Employee not found.
+
+  /employees/search:
+    get:
+      summary: Search employees
+      description: Text search across name, email, department, and title.
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+          description: Search query string.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Search results.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: integer
+                  pageSize:
+                    type: integer
+                  totalItems:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Employee'
+
+components:
+  schemas:
+    Employee:
+      type: object
+      required: [id, firstName, lastName, email, department]
+      properties:
+        id:
+          type: string
+          description: Unique identifier (UUID or HR id).
+          example: "a3f69f9e-7ab2-4d7a-9f06-4a9f5cbb2a52"
+        firstName:
+          type: string
+          example: "Swati"
+        lastName:
+          type: string
+          example: "Kumari"
+        email:
+          type: string
+          format: email
+          example: "swati.kumari@example.com"
+        phone:
+          type: string
+          example: "+91-98765-43210"
+        department:
+          type: string
+          example: "Engineering"
+        jobTitle:
+          type: string
+          example: "Engineer"
+        managerId:
+          type: string
+          nullable: true
+          example: "8b0d5b85-1a5a-4c06-8b2f-2afc9f8d2f10"
+        location:
+          type: string
+          example: "Bangalore, Karnataka"
+        hireDate:
+          type: string
+          format: date
+          example: "2021-07-15"
+        status:
+          type: string
+          enum: [Active, Inactive, OnLeave]
+          default: Active
+        skills:
+          type: array
+          items:
+            type: string
+          example: ["Java", "Microservices", "Azure"]
+        costCenter:
+          type: string
+          example: "ENG-1024"
+        employeeCode:
+          type: string
+          example: "EMP-000123"
+        notes:
+          type: string
+          nullable: true
+    EmployeeCreate:
+      allOf:
+        - $ref: '#/components/schemas/EmployeeBase'
+      required: [firstName, lastName, email, department]
+    EmployeeUpdate:
+      allOf:
+        - $ref: '#/components/schemas/EmployeeBase'
+      required: [id, firstName, lastName, email, department]
+    EmployeePatch:
+      type: object
+      description: Partial update fields for Employee.
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        department:
+          type: string
+        jobTitle:
+          type: string
+        managerId:
+          type: string
+          nullable: true
+        location:
+          type: string
+        hireDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [Active, Inactive, OnLeave]
+        skills:
+          type: array
+          items:
+            type: string
+        costCenter:
+          type: string
+        employeeCode:
+          type: string
+        notes:
+          type: string
+          nullable: true
+    EmployeeBase:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        department:
+          type: string
+        jobTitle:
+          type: string
+        managerId:
+          type: string
+          nullable: true
+        location:
+          type: string
+        hireDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [Active, Inactive, OnLeave]
+        skills:
+          type: array
+          items:
+            type: string
+        costCenter:
+          type: string
+        employeeCode:
+          type: string
+        notes:
+          type: string
+          nullable: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
